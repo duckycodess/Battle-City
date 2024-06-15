@@ -1,0 +1,1 @@
+random.randint(0, self.r - 1)*self.dim, random.randint(0, self.c - 1)*self.dim
