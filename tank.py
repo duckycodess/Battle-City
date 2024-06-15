@@ -7,20 +7,30 @@ class Tank:
         self.direction = 'UP'
         self.height = 16
         self.width = 16
+        self.dim = 2
     
     def update(self):
-        if pyxel.btn(pyxel.KEY_LEFT):
-            self.player_x = max(self.player_x - 2, 0)
-            self.direction = 'LEFT'
-        elif pyxel.btn(pyxel.KEY_RIGHT):
-            self.player_x = min(self.player_x + 2, pyxel.width - self.width)
-            self.direction = 'RIGHT'
-        elif pyxel.btn(pyxel.KEY_UP):
-            self.player_y = max(self.player_y - 2, 0)
-            self.direction = 'UP'
-        elif pyxel.btn(pyxel.KEY_DOWN):
-            self.player_y = min(self.player_y + 2, pyxel.height - self.width)
-            self.direction = 'DOWN'
+        
+        if pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.KEY_A):
+            moveleft = max(self.player_x - self.dim, 0)
+            if moveleft%self.dim == 0:
+                self.player_x = moveleft
+                self.direction = 'LEFT'
+        elif pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.KEY_D):
+            moveright = min(self.player_x + self.dim, pyxel.width - self.width)
+            if moveright%self.dim == 0:
+                self.player_x = moveright
+                self.direction = 'RIGHT'
+        elif pyxel.btn(pyxel.KEY_UP) or pyxel.btn(pyxel.KEY_W):
+            moveup = max(self.player_y - self.dim, 0)
+            if moveup%self.dim == 0:
+                self.player_y = moveup
+                self.direction = 'UP'
+        elif pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(pyxel.KEY_S):
+            movedown = min(self.player_y + self.dim, pyxel.height - self.width)
+            if movedown%self.dim == 0:
+                self.player_y = movedown
+                self.direction = 'DOWN'
         
     
     def draw(self):

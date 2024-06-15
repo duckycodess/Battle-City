@@ -44,7 +44,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def init(self):
         # Loading Resources
         pyxel.load(self.resource_file)
-        self.tank = Tank(random.randint(0, self.r - 1), random.randint(0, self.c - 1)) # Tank Spawn
+        self.tank = Tank(random.randint(0, self.r - 1)*self.dim, random.randint(0, self.c - 1)*self.dim) # Tank Spawn
 
         for r in range(self.r):
             for c in range(self.c):
@@ -57,8 +57,8 @@ class BattleCity(pg.PyxelGrid[CellState]):
 
     def check_bullet_collision(self):
         # Bullet Collission 
-        new_enemy: list[tuple[int, int]] = [] # Storage ng enemies if natamaan ba or hindi
-        for ax, ay in self.enemies.enemy_tank:
+        new_enemy: list[tuple[tuple[int, int], str]] = [] # Storage ng enemies if natamaan ba or hindi
+        for (ax, ay), d in self.enemies.enemy_tank:
             hit = False
             new_bullets: list[tuple[int, int, int, int]] = []
             for bx, by, vx, vy in self.projectiles.bullets:
@@ -69,19 +69,20 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     new_bullets.append((bx, by, vx, vy)) # Pag di natamaan, balik natin bullet para nakikita pa rin sa screen
             self.projectiles.bullets = new_bullets # If may mga bullets na nawala nafilter out na kasi di na inappend
             if not hit: # Eto yung to be used later na kanina so if hindi nahit balik lang natin enemy para di mawala sa screen
-                new_enemy.append((ax, ay))
+                new_enemy.append(((ax, ay), d))
         self.enemies.enemy_tank = new_enemy # Filtered out na dead enemies here
     
 
     def check_enemy_ai(self):
         # Enemy AI basically random movement and firing
-        for i, (ex, ey) in enumerate(self.enemies.enemy_tank):
-            if random.random() < 0.20:  # 20% chance to change direction
+        for i, ((ex, ey), d), in enumerate(self.enemies.enemy_tank):
+            if random.random() < 0.10:  # 20% chance to change direction
                 direction = random.choice(['UP', 'DOWN', 'LEFT', 'RIGHT'])
+                d = direction
             else:
                 direction = None
 
-            if random.random() < 0.30:  # 30% chance to move
+            if random.random() < 0.01:  # 30% chance to move
                 new_x, new_y = ex, ey
                 if direction == 'UP':
                     new_y = max(ey - 2, 0)
@@ -96,12 +97,13 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     #if not self.check_block_collission(new_x, new_y, self.width):
                 ex, ey = new_x, new_y
 
-            if random.random() < 0.10:  # 20% chance to fire
+            if random.random() < 0.20:  # 20% chance to fire
                 self.projectiles.fire(ex, ey, direction)
 
-            self.enemies.enemy_tank[i] = (ex, ey)
+            self.enemies.enemy_tank[i] = ((ex, ey), d)
 
     def update(self):
+        self.tank.dim = self.dim
         self.tank.update() # Update whenever sa tank
         self.projectiles.update() # Update sa bullets (both enemy and ours sana)
         self.enemies.update() # Update sa enemies most likely movement and drawing nila sa screen
