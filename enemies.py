@@ -2,9 +2,9 @@ import pyxel
 
 
 class Enemies:
-    def __init__(self) -> None:
-        self.enemy_tank: list[tuple[tuple[int, int], str, str]] = [((128, 176), 'UP', 'enemy_1'), ((64, 84), 'UP', 'enemy_2'),
-                                                              ((32, 42), 'UP', 'enemy_3')] # Enemy Placeholder location
+    def __init__(self, spawn_x: int, spawn_y: int) -> None:
+        self.enemy_tank: list[tuple[tuple[int, int], str, str]] = [((spawn_x, spawn_y), 'UP', 'enemy_1'), ((spawn_x, spawn_y), 'UP', 'enemy_2'),
+                                                              ((spawn_x, spawn_y), 'UP', 'enemy_3')] # Enemy Placeholder location
         self.width = 16
         self.height = 8
 

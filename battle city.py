@@ -8,10 +8,8 @@ from dataclasses import dataclass
 from bullets import Bullets
 from enemies import Enemies
 from blocks import Block
+from assets.stage import Stage
 
-@dataclass
-class CellState:
-    type: int
 
 class GameState(enum.Enum):
     READY = 0
@@ -26,6 +24,13 @@ class Blocks(enum.Enum):
     MIRROR_NE = 3
     MIRROR_SE = 4
     WATER = 5
+    CRACKED_BRICK = 6
+    FOREST = 7
+    HOME = 8
+
+@dataclass
+class CellState:
+    type: Blocks
 
 class Sound(enum.Enum):
     SHOOT_SOUND = 0
@@ -40,42 +45,48 @@ class Players(enum.Enum):
 class BattleCity(pg.PyxelGrid[CellState]):
     def __init__(self):
         super().__init__(r=16, c=16, dim=16)
-        self.resource_file = os.path.join(os.path.dirname(__file__), "resources.pyxres")
-        self.enemies = Enemies()
+        self.resource_file = os.path.join(os.path.dirname(__file__), "assets/resources.pyxres")
+        self.tank_loc_col = 0
+        self.tank_loc_row = 0
+        self.enemy_spawn_col = 15
+        self.enemy_spawn_row = 15
+        self.level = 1
         self.bullets = Bullets()
         self.blocks = Block()
+        self.load_stage_file()
         self.state = GameState.READY
         self.score = 0
 
     def init(self):
         # Loading Resources
         pyxel.load(self.resource_file)
-        self.tank = Tank(random.randint(0, self.r - 1) * self.dim, random.randint(0, self.c - 1) * self.dim)  # Tank Spawn
 
+        self.current_level = self.levels[self.level]
         for r in range(self.r):
             for c in range(self.c):
-                if random.randint(0, 50) == 4:
-                    self[r, c] = CellState(Blocks.STONE)
-                    self.blocks.blocks.append((self.x(r), self.y(c), Blocks.STONE.value))
-                elif random.randint(0, 50) == 4:
-                    self[r, c] = CellState(Blocks.BRICK)
-                    self.blocks.blocks.append((self.x(r), self.y(c), Blocks.BRICK.value))
-                elif random.randint(0, 50) == 4:
-                    self[r, c] = CellState(Blocks.MIRROR_NE)
-                    self.blocks.blocks.append((self.x(r), self.y(c), Blocks.MIRROR_NE.value))
-                elif random.randint(0, 50) == 4:
-                    self[r, c] = CellState(Blocks.MIRROR_SE)
-                    self.blocks.blocks.append((self.x(r), self.y(c), Blocks.MIRROR_SE.value))
-                else:
-                    self[r, c] = CellState(Blocks.EMPTY)
+                block_type = int(self.current_level[r][c])
+                self[r, c] = CellState(block_type)
+                self.blocks.blocks.append((self.x(r), self.y(c), block_type))
+        self.tank = Tank(self.x(self.tank_loc_row), self.y(self.tank_loc_col))
+        self.enemies = Enemies(self.x(self.enemy_spawn_row), self.y(self.enemy_spawn_col))
         self.state = GameState.RUNNING
+    
+    def load_stage_file(self):
+        stage = Stage()
+        self.levels = stage.levels
+        if self.in_bounds(stage.player_spawn_row, stage.player_spawn_col):
+            self.tank_loc_col, self.tank_loc_row = stage.player_spawn_col, stage.player_spawn_row
+        if self.in_bounds(stage.enemy_spawn_row, stage.player_spawn_col):
+            self.enemy_spawn_col, self.enemy_spawn_row = stage.enemy_spawn_col, stage.enemy_spawn_row
+            
 
     def check_block_collission(self, x: int, y: int) -> bool:
-        for ax, ay, _ in self.blocks.blocks:
-            if (ax < x < ax+self.dim or ax < x +self.dim < ax+self.dim or ax < x +self.dim//2 < ax+self.dim) and \
+        for ax, ay, type in self.blocks.blocks:
+            if type and (ax < x < ax+self.dim or ax < x +self.dim < ax+self.dim or ax < x +self.dim//2 < ax+self.dim) and \
                 (ay < y < ay+self.dim or ay < y+self.dim < ay+self.dim or ay < y+self.dim//2 < ay+self.dim):
                 return True
         return False
+
 
     def check_bullet_collision(self):
         new_enemy: list[tuple[tuple[int, int], str, str]] = [] # Storage of enemies if hit or not
@@ -87,7 +98,8 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     self.score += 10
                     hit = True
                 elif self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim:
-                    self.state = GameState.GAME_OVER
+                    #self.state = GameState.GAME_OVER
+                    pass
                 else:
                     new_bullets.append((bx, by, vx, vy)) # If not hit, keep bullet on screen
             self.bullets.bullets["player"] = new_bullets # Filter out hit bullets
@@ -95,16 +107,24 @@ class BattleCity(pg.PyxelGrid[CellState]):
                 new_enemy.append(((ax, ay), d, enemy_id))
         self.enemies.enemy_tank = new_enemy # Filter out dead enemies here
 
-        # Enemy bullet checking
         for enemy_id in self.bullets.bullets.keys():
             if enemy_id.startswith("enemy_"):
                 new_bullets: list[tuple[int, int, int, int]] = []
                 for bx, by, vx, vy in self.bullets.bullets[enemy_id]:
                     if self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim:
                         self.state = GameState.GAME_OVER
+                        pass
                     else:
-                        new_bullets.append((bx, by, vx, vy))
-                self.bullets.bullets[enemy_id] = new_bullets    
+                        hit_self = False
+                        # if enemy bullet hits itself
+                        for (ex, ey), _, eid in self.enemies.enemy_tank:
+                            if eid == enemy_id:
+                                if ex < bx < ex + self.dim and ey < by < ey + self.dim:
+                                    hit_self = True
+                                    break
+                        if not hit_self:
+                            new_bullets.append((bx, by, vx, vy))
+                self.bullets.bullets[enemy_id] = new_bullets      
 
     def check_bullet_block_collission(self):
         new_bullets: list[tuple[int, int, int, int]] = []
@@ -113,12 +133,13 @@ class BattleCity(pg.PyxelGrid[CellState]):
             if self.in_bounds(cell_x, cell_y):
                 cell_type = Blocks(self[cell_x, cell_y].type)
                 if cell_type == Blocks.BRICK:
-                    new_blocks: list[tuple[int, int, int]] = []
-                    for x, y, type in self.blocks.blocks:
-                        if type != Blocks.BRICK:
-                            new_blocks.append((x, y, type))
-                    self[cell_x, cell_y] = CellState(Blocks.EMPTY)
-                    self.blocks.blocks = new_blocks
+                    for i in reversed(range(len(self.blocks.blocks))):
+                        block = self.blocks.blocks[i]
+                        if block[2] == Blocks.BRICK.value:
+                            if block[0] <= bx <= block[0] + self.dim \
+                                and block[1] <= by <= block[1] + self.dim:
+                                    self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.EMPTY.value)
+                                    break
                     continue
                 elif cell_type == Blocks.STONE:
                     continue
@@ -126,6 +147,8 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     vx, vy = vy, vx
                 elif cell_type == Blocks.MIRROR_SE:
                     vx, vy = -vy, -vx
+                elif cell_type == Blocks.WATER:
+                    pass
                 new_bullets.append((bx + vx, by + vy, vx, vy))
         self.bullets.bullets["player"] = new_bullets
 
@@ -138,13 +161,13 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     if self.in_bounds(cell_x, cell_y):
                         cell_type = Blocks(self[cell_x, cell_y].type)
                         if cell_type == Blocks.BRICK:
-                            print('hit')
-                            new_blocks: list[tuple[int, int, int]] = []
-                            for x, y, type in self.blocks.blocks:
-                                if type != Blocks.BRICK:
-                                    new_blocks.append((x, y, type))
-                            self[cell_x, cell_y] = CellState(Blocks.EMPTY)
-                            self.blocks.blocks = new_blocks
+                            for i in reversed(range(len(self.blocks.blocks))):
+                                block = self.blocks.blocks[i]
+                                if block[2] == Blocks.BRICK.value:
+                                    if block[0] <= bx <= block[0] + self.dim \
+                                        and block[1] <= by <= block[1] + self.dim:
+                                            self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.EMPTY.value)
+                                            break
                             continue
                         elif cell_type == Blocks.STONE:
                             continue
@@ -152,6 +175,8 @@ class BattleCity(pg.PyxelGrid[CellState]):
                             vx, vy = vy, vx
                         elif cell_type == Blocks.MIRROR_SE:
                             vx, vy = -vy, -vx
+                        elif cell_type == Blocks.WATER:
+                            pass
                         new_bullets.append((bx + vx, by + vy, vx, vy))
                 self.bullets.bullets[enemy_id] = new_bullets
 
@@ -233,6 +258,8 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def draw_cell(self, i: int, j: int, x: int, y: int) -> None:
         # Draw the blocks
         pyxel.rect(x, y, 2, 2, pyxel.COLOR_LIME)
+        self.blocks.width = self.dim
+        self.blocks.draw()
 
         # Block types
         if not self.state == GameState.GAME_OVER:
@@ -240,9 +267,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
         self.enemies.draw()
         self.bullets.draw()
 
-        # Test blocks
-        self.blocks.width = self.dim
-        self.blocks.draw()
+        
 
     def pre_draw_grid(self) -> None:
         pyxel.cls(0)
@@ -251,9 +276,9 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def post_draw_grid(self) -> None:
         if self.state == GameState.GAME_OVER:
             pyxel.cls(0)
-            pyxel.text(128 ,128, 'BOBO', 10)
+            pyxel.text(112 ,128, 'BOBO', 10)
         elif self.state == GameState.WIN:
             pyxel.cls(4)
-            pyxel.text(128 ,128, 'WEIRDASS', 10)
-
+            pyxel.text(112 ,128, 'WEIRDASS', 10)
+        
 BattleCity().run(title="Battle City", fps=60)

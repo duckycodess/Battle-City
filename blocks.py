@@ -1,9 +1,6 @@
 import pyxel
-import pyxelgrid as pg
-from random import randint
 class Block:
-    def __init__(self, type: int = 0) -> None:
-        self.type = type
+    def __init__(self) -> None:
         self.width = 16
         self.height = 16
         self.blocks: list[tuple[int, int, int]] = []
@@ -25,3 +22,5 @@ class Block:
             elif type == 5:
                 pyxel.rect(x, y, self.width, self.width, 0)
                 pyxel.blt(x, y, 0, 32, 48, 16, 16)
+            else:
+                pass

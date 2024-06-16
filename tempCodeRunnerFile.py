@@ -1,1 +1,6 @@
-random.randint(0, self.r - 1)*self.dim, random.randint(0, self.c - 1)*self.dim
+import os
+
+stage_file = os.path.join(os.path.dirname(__file__), "assets/stage.txt")
+with open(stage_file) as f:
+    s = f.readline(-10).rstrip().split()
+    print(s)
