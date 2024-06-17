@@ -7,7 +7,9 @@ class Block:
     
     def draw(self):
         for x, y, type in self.blocks:
-            if type == 1:
+            if type == 0:
+                pass
+            elif type == 1:
                 pyxel.rect(x, y, self.width, self.width, 0)
                 pyxel.blt(x, y, 0, 16, 48, 16, 16)
             elif type == 2:
@@ -22,5 +24,6 @@ class Block:
             elif type == 5:
                 pyxel.rect(x, y, self.width, self.width, 0)
                 pyxel.blt(x, y, 0, 32, 48, 16, 16)
-            else:
-                pass
+            elif type == 6:
+                pyxel.rect(x, y, self.width, self.width, 0)
+                pyxel.blt(x, y, 0, 48, 48, 16, 16)
