@@ -48,6 +48,14 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def __init__(self):
         super().__init__(r=16, c=16, dim=16)
         self.resource_file = os.path.join(os.path.dirname(__file__), "assets/resources.pyxres")
+        self.init_positions()
+        self.bullets = Bullets()
+        self.blocks = Block()
+        self.load_stage_file()
+        self.state = GameState.READY
+        self.score = 0
+    
+    def init_positions(self):
         self.tank_loc_col = 0
         self.tank_loc_row = 0
         self.enemy_spawn_col = 15
@@ -55,11 +63,6 @@ class BattleCity(pg.PyxelGrid[CellState]):
         self.enemies_count = 0
         self.enemy_spawning = 0
         self.level = 1
-        self.bullets = Bullets()
-        self.blocks = Block()
-        self.load_stage_file()
-        self.state = GameState.READY
-        self.score = 0
 
     def init(self):
         # Loading Resources
@@ -67,26 +70,32 @@ class BattleCity(pg.PyxelGrid[CellState]):
         self.load_level()
 
     def load_level(self):
-        self.current_level = self.levels[self.level]
-        for r in range(self.r):
-            for c in range(self.c):
-                if self.current_level[r][c] != '0' and ((r == self.tank_loc_row and c == self.tank_loc_col) or \
-                   (r == self.enemy_spawn_row and c == self.enemy_spawn_col)):
-                    raise ValueError('Invalid block placed or this is a spawn area!')
-                else:
-                    block_type = int(self.current_level[r][c])
-                    self[r, c] = CellState(block_type)
-                    self.blocks.blocks.append((self.x(r), self.y(c), block_type))
+        self.current_level = self.level_layouts[self.level]
+        self.populate_blocks()
         self.tank = Tank(self.x(self.tank_loc_row), self.y(self.tank_loc_col))
         self.enemies = Enemies()
-        self.enemies_count = (self.level*2) + 3
+        self.enemies_count = (self.level * 2) + 3
         self.enemy_spawning = self.enemies_count
         self.state = GameState.RUNNING
+
+    def populate_blocks(self):
+        for r in range(self.r):
+            for c in range(self.c):
+                block_type = int(self.current_level[r][c])
+                if self.is_invalid_block_placement(r, c):
+                    raise ValueError('Invalid block placed or this is a spawn area!')
+                self[r, c] = CellState(block_type)
+                self.blocks.blocks.append((self.x(r), self.y(c), block_type))
+
+    def is_invalid_block_placement(self, r: int, c: int):
+        return self.current_level[r][c] != '0' and (
+                (r == self.tank_loc_row and c == self.tank_loc_col) or
+                (r == self.enemy_spawn_row and c == self.enemy_spawn_col))
         
-    
+
     def load_stage_file(self):
-        stage = Stage()
-        self.levels = stage.levels
+        stage = Stage() # Dito ko kukunin info
+        self.level_layouts = stage.levels 
         if self.in_bounds(stage.player_spawn_row, stage.player_spawn_col):
             self.tank_loc_col, self.tank_loc_row = stage.player_spawn_col, stage.player_spawn_row
         else:
@@ -143,79 +152,41 @@ class BattleCity(pg.PyxelGrid[CellState]):
                 self.bullets.bullets[enemy_id] = new_bullets      
 
     def check_bullet_block_collission(self):
-        new_bullets: list[tuple[int, int, int, int]] = []
-        for bx, by, vx, vy in self.bullets.bullets["player"]:
-            cell_x, cell_y = bx // self.dim, by // self.dim
-            if self.in_bounds(cell_x, cell_y):
-                cell_type = Blocks(self[cell_x, cell_y].type)
+        for tank_player in self.bullets.bullets.keys():
+            new_bullets: list[tuple[int, int, int, int]] = []
+            for bx, by, vx, vy in self.bullets.bullets[tank_player]:
+                cell_x, cell_y = bx // self.dim, by // self.dim
+                if self.in_bounds(cell_x, cell_y):
+                    cell_type = Blocks(self[cell_x, cell_y].type)
 
-                if cell_type == Blocks.BRICK:
-                    for i in reversed(range(len(self.blocks.blocks))):
-                        block = self.blocks.blocks[i]
-                        if block[2] == Blocks.BRICK.value and block[0] <= bx <= block[0] + self.dim \
-                                and block[1] <= by <= block[1] + self.dim:
-                            self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.CRACKED_BRICK.value)
-                            self[cell_x, cell_y] = CellState(Blocks.CRACKED_BRICK.value)
-                            break
-                    continue
-                elif cell_type == Blocks.CRACKED_BRICK:
-                    for i in reversed(range(len(self.blocks.blocks))):
-                        block = self.blocks.blocks[i]
-                        if block[2] == Blocks.CRACKED_BRICK.value and block[0] <= bx <= block[0] + self.dim \
-                                and block[1] <= by <= block[1] + self.dim:
-                            self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.EMPTY.value)
-                            self[cell_x, cell_y] = CellState(Blocks.EMPTY.value)
-                            break
-                    continue
-                elif cell_type == Blocks.STONE:
-                    continue
-                elif cell_type == Blocks.MIRROR_NE:
-                    vx, vy = vy, vx
-                elif cell_type == Blocks.MIRROR_SE:
-                    vx, vy = -vy, -vx
-                elif cell_type == Blocks.WATER:
-                    pass
-                new_bullets.append((bx + vx, by + vy, vx, vy))
-        self.bullets.bullets["player"] = new_bullets
-
-        # Enemy bullet checking
-        for enemy_id in self.bullets.bullets.keys():
-            if enemy_id.startswith("enemy_"):
-                new_bullets: list[tuple[int, int, int, int]] = []
-
-                for bx, by, vx, vy in self.bullets.bullets[enemy_id]:
-                    cell_x, cell_y = bx // self.dim, by // self.dim
-                    if self.in_bounds(cell_x, cell_y):
-                        cell_type = Blocks(self[cell_x, cell_y].type)
-
-                        if cell_type == Blocks.BRICK:
-                            for i in reversed(range(len(self.blocks.blocks))):
-                                block = self.blocks.blocks[i]
-                                if block[2] == Blocks.BRICK.value and block[0] <= bx <= block[0] + self.dim \
-                                        and block[1] <= by <= block[1] + self.dim:
-                                    self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.CRACKED_BRICK.value)
-                                    self[cell_x, cell_y] = CellState(Blocks.CRACKED_BRICK.value)
-                                    break
-                            continue
-                        elif cell_type == Blocks.CRACKED_BRICK:
-                            for i in reversed(range(len(self.blocks.blocks))):
-                                block = self.blocks.blocks[i]
-                                if block[2] == Blocks.CRACKED_BRICK.value and block[0] <= bx <= block[0] + self.dim \
-                                        and block[1] <= by <= block[1] + self.dim:
-                                    self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.EMPTY.value)
-                                    self[cell_x, cell_y] = CellState(Blocks.EMPTY.value)
-                                    break
-                            continue
-                        elif cell_type == Blocks.STONE:
-                            continue
-                        elif cell_type == Blocks.MIRROR_NE:
-                            vx, vy = vy, vx
-                        elif cell_type == Blocks.MIRROR_SE:
-                            vx, vy = -vy, -vx
-                        elif cell_type == Blocks.WATER:
-                            pass
-                        new_bullets.append((bx + vx, by + vy, vx, vy))
-                self.bullets.bullets[enemy_id] = new_bullets
+                    if cell_type == Blocks.BRICK:
+                        for i in reversed(range(len(self.blocks.blocks))):
+                            block = self.blocks.blocks[i]
+                            if block[2] == Blocks.BRICK.value and block[0] <= bx <= block[0] + self.dim \
+                                    and block[1] <= by <= block[1] + self.dim:
+                                self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.CRACKED_BRICK.value)
+                                self[cell_x, cell_y] = CellState(Blocks.CRACKED_BRICK.value)
+                                break
+                        continue
+                    elif cell_type == Blocks.CRACKED_BRICK:
+                        for i in reversed(range(len(self.blocks.blocks))):
+                            block = self.blocks.blocks[i]
+                            if block[2] == Blocks.CRACKED_BRICK.value and block[0] <= bx <= block[0] + self.dim \
+                                    and block[1] <= by <= block[1] + self.dim:
+                                self.blocks.blocks[i] = (self.x(cell_x), self.y(cell_y), Blocks.EMPTY.value)
+                                self[cell_x, cell_y] = CellState(Blocks.EMPTY.value)
+                                break
+                        continue
+                    elif cell_type == Blocks.STONE:
+                        continue
+                    elif cell_type == Blocks.MIRROR_NE:
+                        vx, vy = vy, vx
+                    elif cell_type == Blocks.MIRROR_SE:
+                        vx, vy = -vy, -vx
+                    elif cell_type == Blocks.WATER:
+                        pass
+                    new_bullets.append((bx + vx, by + vy, vx, vy))
+            self.bullets.bullets[tank_player] = new_bullets
 
         self.bullets.check_collision("player", [key for key in self.bullets.bullets.keys() if key.startswith("enemy_")])
     
@@ -246,10 +217,10 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     self.bullets.fire(enemy_id, ex, ey, d)
 
                 self.enemies.enemy_tank[i] = ((ex, ey), d, enemy_id)
-        if pyxel.frame_count % 600 == 0 and self.enemy_spawning > 0:
+        if pyxel.frame_count % 600 == 0 and self.enemy_spawning > 0: # Every 10 seconds spawn an enemy
             self.enemies.enemy_tank.append(((self.x(self.enemy_spawn_row), self.y(self.enemy_spawn_col)), 
-                                            'UP', f'enemy_{self.enemy_spawning}'))
-            self.enemy_spawning -= 1
+                                            'UP', f'enemy_{self.enemy_spawning}')) # Just append the enemy into a list
+            self.enemy_spawning -= 1 # Bawasan need to spawn
 
     def update(self):
         if self.state == GameState.GAME_OVER or self.state == GameState.WIN:
