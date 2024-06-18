@@ -171,8 +171,12 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     if t == 1:
                         hit = True
                         new_enemy.append(((ax, ay), d, enemy_id, 2))
+                        self.score += 50
                     else:
-                        self.score += 10
+                        if t == 0:
+                            self.score += 100
+                        elif t == 2:
+                            self.score += 200
                         hit = True
                 elif self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim:
                     pyxel.play(0, PLAYER_DIED)
@@ -216,7 +220,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def check_bullet_block_collission(self):
         new_bullets: list[tuple[int, int, int, int]] = []
         for bx, by, vx, vy in self.bullets.bullets["player"]:
-            cell_x, cell_y = bx // self.dim, by // self.dim
+            cell_x, cell_y = pyxel.floor(bx / self.dim), pyxel.floor(by / self.dim)
             if self.in_bounds(cell_x, cell_y):
                 cell_type = Blocks(self[cell_x, cell_y].type)
 
@@ -382,11 +386,11 @@ class BattleCity(pg.PyxelGrid[CellState]):
         if not self.enemies.enemy_tank and not ([values for values in self.bullets.bullets.values() if values]) \
             and not self.enemy_spawning:
             if self.level < max(list(self.level_layouts.keys())):
-                while self.tick <= 120:
+                self.tick = 0
+                while self.tick <= 300:
                     self.tick += 1
                 self.level += 1
                 self.init_positions()
-                self.tick = 0
                 
                 self.state = GameState.NEXT_LEVEL
             else:
@@ -433,9 +437,10 @@ class BattleCity(pg.PyxelGrid[CellState]):
             pyxel.text(250, 5, f'Level {self.level}', 7)
         if self.state == GameState.GAME_OVER:
             pyxel.cls(0)
-            pyxel.text(112 ,128, 'Loser', 10)
+            pyxel.text(128 ,128, 'Loser', 10)
         elif self.state == GameState.WIN:
             pyxel.cls(4)
-            pyxel.text(112 ,128, 'Winner', 10)
+            pyxel.text(128 ,128, 'Winner', 10)
+            pyxel.text(128, 148, f'Your Score is: {self.score}', 10)
         
 BattleCity().run(title="Battle City", fps=60)
