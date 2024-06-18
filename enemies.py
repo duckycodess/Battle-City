@@ -3,23 +3,50 @@ import pyxel
 
 class Enemies:
     def __init__(self) -> None:
-        self.enemy_tank: list[tuple[tuple[int, int], str, str]] = [] # Enemy Placeholder location
+        self.enemy_tank: list[tuple[tuple[int, int], str, str, int]] = [] # ((x,y), direction, enemy_id, type)
         self.width = 16
         self.height = 16
 
     def update(self):
         pass
     def draw(self):
-        for (x, y), direction, _ in self.enemy_tank:
-            if direction == 'UP':
-                pyxel.rect(x, y, self.width, self.height, 9)
-                pyxel.blt(x, y, 0, 0, 16, 16, 16)
-            elif direction == 'DOWN':
-                pyxel.rect(x, y, self.width, self.height, 9)
-                pyxel.blt(x, y, 0, 16, 16, 16, 16)
-            elif direction == 'RIGHT':
-                pyxel.rect(x, y, self.height, self.width, 9)
-                pyxel.blt(x, y, 0, 32, 16, 16, 16)
-            elif direction == 'LEFT':
-                pyxel.rect(x, y, self.height, self.width, 9)
-                pyxel.blt(x, y, 0, 48, 16, 16, 16)
+        for (x, y), direction, _, t in self.enemy_tank:
+            if t == 0: #normal
+                if direction == 'UP':
+                    pyxel.rect(x, y, self.width, self.height, 9)
+                    pyxel.blt(x, y, 0, 0, 16, 16, 16)
+                elif direction == 'DOWN':
+                    pyxel.rect(x, y, self.width, self.height, 9)
+                    pyxel.blt(x, y, 0, 16, 16, 16, 16)
+                elif direction == 'RIGHT':
+                    pyxel.rect(x, y, self.height, self.width, 9)
+                    pyxel.blt(x, y, 0, 32, 16, 16, 16)
+                elif direction == 'LEFT':
+                    pyxel.rect(x, y, self.height, self.width, 9)
+                    pyxel.blt(x, y, 0, 48, 16, 16, 16)
+            elif t == 1: #may shield
+                if direction == 'UP':
+                    pyxel.rect(x, y, self.width, self.height, 9)
+                    pyxel.blt(x, y, 0, 0, 80, 16, 16)
+                elif direction == 'DOWN':
+                    pyxel.rect(x, y, self.width, self.height, 9)
+                    pyxel.blt(x, y, 0, 16, 80, 16, 16)
+                elif direction == 'RIGHT':
+                    pyxel.rect(x, y, self.height, self.width, 9)
+                    pyxel.blt(x, y, 0, 32, 80, 16, 16)
+                elif direction == 'LEFT':
+                    pyxel.rect(x, y, self.height, self.width, 9)
+                    pyxel.blt(x, y, 0, 48, 80, 16, 16)
+            elif t == 2: # walang shield
+                if direction == 'UP':
+                    pyxel.rect(x, y, self.width, self.height, 9)
+                    pyxel.blt(x, y, 0, 0, 32, 16, 16)
+                elif direction == 'DOWN':
+                    pyxel.rect(x, y, self.width, self.height, 9)
+                    pyxel.blt(x, y, 0, 16, 32, 16, 16)
+                elif direction == 'RIGHT':
+                    pyxel.rect(x, y, self.height, self.width, 9)
+                    pyxel.blt(x, y, 0, 32, 32, 16, 16)
+                elif direction == 'LEFT':
+                    pyxel.rect(x, y, self.height, self.width, 9)
+                    pyxel.blt(x, y, 0, 48, 32, 16, 16)

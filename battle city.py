@@ -48,33 +48,38 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def __init__(self):
         super().__init__(r=16, c=16, dim=16)
         self.resource_file = os.path.join(os.path.dirname(__file__), "assets/resources.pyxres")
+        self.score = 0
+        self.lives = 3
+        self.level = 1
         self.init_positions()
+        
+    
+    def init_positions(self, restart: bool=False):
+        if restart:
+            self.level = 1
         self.bullets = Bullets()
         self.blocks = Block()
         self.load_stage_file()
-        self.state = GameState.READY
-        self.score = 0
-    
-    def init_positions(self):
         self.tank_loc_col = 0
         self.tank_loc_row = 0
         self.enemy_spawn_col = 15
         self.enemy_spawn_row = 15
         self.enemies_count = 0
         self.enemy_spawning = 0
-        self.level = 1
+        self.state = GameState.READY
+        self.load_level()
+
 
     def init(self):
         # Loading Resources
         pyxel.load(self.resource_file)
-        self.load_level()
 
     def load_level(self):
         self.current_level = self.level_layouts[self.level]
         self.populate_blocks()
         self.tank = Tank(self.x(self.tank_loc_col), self.y(self.tank_loc_row))
         self.enemies = Enemies()
-        self.enemies_count = (self.level * 2) + 3
+        self.enemies_count = 1 #(self.level * 2) + 3
         self.enemy_spawning = self.enemies_count
         self.state = GameState.RUNNING
 
@@ -87,7 +92,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
                 self[c, r] = CellState(block_type)
                 self.blocks.blocks.append((self.x(c), self.y(r), block_type))
 
-    def is_invalid_block_placement(self, r: int, c: int):
+    def is_invalid_block_placement(self, r: int, c: int) -> bool:
         return self.current_level[r][c] != '0' and (
                 (r == self.tank_loc_row and c == self.tank_loc_col) or
                 (r == self.enemy_spawn_row and c == self.enemy_spawn_col))
@@ -115,21 +120,28 @@ class BattleCity(pg.PyxelGrid[CellState]):
 
 
     def check_bullet_collision(self):
-        new_enemy: list[tuple[tuple[int, int], str, str]] = [] # Storage of enemies if hit or not
-        for (ax, ay), d, enemy_id in self.enemies.enemy_tank:
+        new_enemy: list[tuple[tuple[int, int], str, str, int]] = [] # Storage of enemies if hit or not
+        for (ax, ay), d, enemy_id, t in self.enemies.enemy_tank:
             hit = False
             new_bullets: list[tuple[int, int, int, int]] = []
             for bx, by, vx, vy in self.bullets.bullets["player"]:
                 if ax < bx < ax + self.dim and ay < by < ay + self.dim: # If bullet hits enemy tank
-                    self.score += 10
-                    hit = True
+                    if t == 1:
+                        hit = True
+                        new_enemy.append(((ax, ay), d, enemy_id, 2))
+                    else:
+                        self.score += 10
+                        hit = True
                 elif self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim:
-                    self.state = GameState.GAME_OVER
+                    self.lives -= 1
+                    if not self.lives:
+                        self.state = GameState.GAME_OVER
+                    self.tank = Tank(self.x(self.tank_loc_col), self.y(self.tank_loc_row))
                 else:
                     new_bullets.append((bx, by, vx, vy)) # If not hit, keep bullet on screen
             self.bullets.bullets["player"] = new_bullets # Filter out hit bullets
             if not hit: # If enemy not hit, keep on screen
-                new_enemy.append(((ax, ay), d, enemy_id))
+                new_enemy.append(((ax, ay), d, enemy_id, t))
         self.enemies.enemy_tank = new_enemy # Filter out dead enemies here
 
         for enemy_id in self.bullets.bullets.keys():
@@ -137,19 +149,21 @@ class BattleCity(pg.PyxelGrid[CellState]):
                 new_bullets: list[tuple[int, int, int, int]] = []
                 for bx, by, vx, vy in self.bullets.bullets[enemy_id]:
                     if self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim:
-                        self.state = GameState.GAME_OVER
-                        pass
+                        self.lives -= 1
+                        if not self.lives:
+                            self.state = GameState.GAME_OVER
+                        self.tank = Tank(self.x(self.tank_loc_col), self.y(self.tank_loc_row))
                     else:
                         hit_self = False
                         # if enemy bullet hits itself
-                        for (ex, ey), _, eid in self.enemies.enemy_tank:
+                        for (ex, ey), _, eid, _ in self.enemies.enemy_tank:
                             if eid == enemy_id:
                                 if ex < bx < ex + self.dim and ey < by < ey + self.dim:
                                     hit_self = True
                                     break
                         if not hit_self:
                             new_bullets.append((bx, by, vx, vy))
-                self.bullets.bullets[enemy_id] = new_bullets      
+                self.bullets.bullets[enemy_id] = new_bullets     
 
     def check_bullet_block_collission(self):
         new_bullets: list[tuple[int, int, int, int]] = []
@@ -157,7 +171,6 @@ class BattleCity(pg.PyxelGrid[CellState]):
             cell_x, cell_y = bx // self.dim, by // self.dim
             if self.in_bounds(cell_x, cell_y):
                 cell_type = Blocks(self[cell_x, cell_y].type)
-                print(cell_type)
 
                 if cell_type == Blocks.BRICK:
                     for i in reversed(range(len(self.blocks.blocks))):
@@ -232,12 +245,12 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def check_enemy_ai(self):
         # Enemy AI basically random movement and firing
         if pyxel.frame_count % 30:
-            for i, ((ex, ey), d, enemy_id), in enumerate(self.enemies.enemy_tank):
+            for i, ((ex, ey), d, enemy_id, enemy_type), in enumerate(self.enemies.enemy_tank):
                 if random.random() < 0.03:  # 20% chance to change direction
                     direction = random.choice(['UP', 'DOWN', 'LEFT', 'RIGHT'])
                     d = direction
 
-                if random.random() < 0.35:  # 30% chance to move
+                if random.random() < 0.4:  # 30% chance to move
                     new_x, new_y = ex, ey
                     if d == 'UP':
                         new_y = max(ey - 2, 0)
@@ -252,18 +265,23 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     if not self.check_block_collission(new_x, new_y):
                         ex, ey = new_x, new_y
 
-                if random.random() < 0.1:  # 20% chance to fire
+                if random.random() < 0.05:  # 20% chance to fire
                     self.bullets.fire(enemy_id, ex, ey, d)
 
-                self.enemies.enemy_tank[i] = ((ex, ey), d, enemy_id)
+                self.enemies.enemy_tank[i] = ((ex, ey), d, enemy_id, enemy_type)
         if pyxel.frame_count % 600 == 0 and self.enemy_spawning > 0: # Every 10 seconds spawn an enemy
             self.enemies.enemy_tank.append(((self.x(self.enemy_spawn_col), self.y(self.enemy_spawn_row)), 
-                                            'UP', f'enemy_{self.enemy_spawning}')) # Just append the enemy into a list
+                                            'UP', f'enemy_{self.enemy_spawning}', random.choice([0,1]))) # Just append the enemy into a list
             self.enemy_spawning -= 1 # Bawasan need to spawn
 
     def update(self):
+        print(self.lives)
         if self.state == GameState.GAME_OVER or self.state == GameState.WIN:
             return
+        if self.state == GameState.RUNNING and pyxel.btnp(pyxel.KEY_R):
+            self.init_positions(restart=True)
+            self.enemies.enemy_tank.append(((self.x(self.enemy_spawn_col), self.y(self.enemy_spawn_row)), 
+                                            'UP', f'enemy_{self.enemy_spawning}', random.choice([0,1])))
         self.tank.update()
         # Tank-Block Collision
         match self.tank.direction:
@@ -292,23 +310,28 @@ class BattleCity(pg.PyxelGrid[CellState]):
         self.check_bullet_block_collission()
         self.check_bullet_collision() # Bullet collision
         self.check_enemy_ai() # Enemy AI
+
         
         if not self.enemies.enemy_tank and not ([values for values in self.bullets.bullets.values() if values]) \
             and not self.enemy_spawning:
-            self.state = GameState.WIN
+            if self.level < max(list(self.level_layouts.keys())):
+                self.level += 1
+                self.init_positions()
+            else:
+                self.state = GameState.WIN
 
 
     def draw_cell(self, i: int, j: int, x: int, y: int) -> None:
         # Draw the blocks
-        pyxel.rect(x, y, 2, 2, pyxel.COLOR_LIME)
+        pyxel.rect(x, y, 2, 2, pyxel.COLOR_WHITE)
         self.blocks.width = self.dim
         self.blocks.draw()
 
         # Block types
+        self.bullets.draw()
         if not self.state == GameState.GAME_OVER:
             self.tank.draw()
         self.enemies.draw()
-        self.bullets.draw()
 
     def pre_draw_grid(self) -> None:
         pyxel.cls(0)

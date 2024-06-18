@@ -1,6 +1,6 @@
 class Stage:
     player_spawn_col = 0 # Must be a valid column
-    player_spawn_row = 5 # Must be a valid row
+    player_spawn_row = 0 # Must be a valid row
     enemy_spawn_col = 14 # Must be a valid column
     enemy_spawn_row = 14 # Must be a valid row
     '''
@@ -53,6 +53,6 @@ class Stage:
             '2000000020000000',
             '2000000020000000',
             '2000000020000000',
-            '2222222222222222',
+            '2222222222222000',
                                 ],
     }

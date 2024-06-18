@@ -20,7 +20,7 @@ class Bullets:
     
     def draw(self):
         for owner, bullet_list in self.bullets.items():
-            color = 9 if owner == "player" else 8
+            color = 8 if owner == "player" else 9
             for x, y, _, _ in bullet_list:
                 pyxel.circ(x, y, self.r, color)
     
@@ -29,13 +29,13 @@ class Bullets:
             self.bullets[owner] = []
 
         if direction == 'UP':
-            self.bullets[owner].append((x + 7, y, 0, -self.velocity))
+            self.bullets[owner].append((x + 7, y + 3, 0, -self.velocity))
         elif direction == 'DOWN':
-            self.bullets[owner].append((x + 7, y + 16, 0, self.velocity))
+            self.bullets[owner].append((x + 8, y + 13, 0, self.velocity))
         elif direction == 'LEFT':
-            self.bullets[owner].append((x, y + 7, -self.velocity, 0))
+            self.bullets[owner].append((x + 3, y + 7, -self.velocity, 0))
         elif direction == 'RIGHT':
-            self.bullets[owner].append((x + 16, y + 7, self.velocity, 0))
+            self.bullets[owner].append((x + 13, y + 7, self.velocity, 0))
     
     def check_collision(self, player_key: str, enemy_keys: list[str]):
         new_player_bullets: list[tuple[int, int, int, int]] = []
