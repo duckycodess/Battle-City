@@ -27,3 +27,7 @@ class Block:
             elif type == 6:
                 pyxel.rect(x, y, self.width, self.width, 0)
                 pyxel.blt(x, y, 0, 48, 48, 16, 16)
+            elif type == 7:
+                pyxel.blt(x, y, 0, 32,64, 16, 16, 6)
+            elif type == 9:
+                pyxel.rect(x,y,self.width, self.width, 2)

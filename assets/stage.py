@@ -1,8 +1,8 @@
 class Stage:
     player_spawn_col = 0 # Must be a valid column
     player_spawn_row = 0 # Must be a valid row
-    enemy_spawn_col = 14 # Must be a valid column
-    enemy_spawn_row = 14 # Must be a valid row
+    enemy_spawn_col = 15 # Must be a valid column
+    enemy_spawn_row = 15 # Must be a valid row
     '''
     Each level is specified by its key and its layout by its value.
     All cells within a 16x16 range should contain a number from 0-8
@@ -34,7 +34,7 @@ class Stage:
             '0000000000000000',
             '0000022222000000',
             '0000020002000000',
-            '0000020802000000'
+            '0000020802000000',
         ],
 
         2: [
