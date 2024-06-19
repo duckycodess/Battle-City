@@ -117,8 +117,8 @@ class BattleCity(pg.PyxelGrid[CellState]):
                 if self.cheat_code == 'hesoyam':
                     self.lives += 1
                     self.cheat_code = ""
-                elif self.cheat_code == 'pewpewpew':
-                    self.tank.gatling_mode = not self.tank.gatling_mode
+                elif self.cheat_code == 'pewpews':
+                    self.tank.activate_gatling(300)
                     self.cheat_code = ""
                 elif self.cheat_code == 'juancho':
                     self.enemies.enemy_tank.clear()
