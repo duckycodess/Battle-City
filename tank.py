@@ -10,6 +10,10 @@ class Tank:
         self.speed = 2
         self.is_block_colliding:bool = False
         self.move_x, self.move_y = self.player_x, self.player_y
+        self.dim = 18
+        self.gatling_mode = False
+        self.powerup_timer = 0
+        self.invincibility_mode = False
     
     def update(self):
         if pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.KEY_A):
@@ -24,11 +28,22 @@ class Tank:
         elif pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(pyxel.KEY_S):
             self.move_y = min(self.player_y + self.speed, pyxel.height - self.width)
             self.direction = 'DOWN'
+
+        # GATLING mode
+        if self.gatling_mode:
+            self.powerup_timer -= 1
+            if self.powerup_timer <= 0:
+                self.gatling_mode = False
         
+        # INVINCIBILITY mode
+        if self.invincibility_mode:
+            self.powerup_timer -= 1
+            if self.powerup_timer <= 0:
+                self.gatling_mode = False
     
     def draw(self):
         if self.direction == 'UP':
-            pyxel.rect(self.player_x, self.player_y, self.width, self.height, 9)
+            pyxel.rect(self.player_x, self.player_y, self.width, self.height, 6)
             pyxel.blt(self.player_x, self.player_y, 0, 0, 0, 16, 16)
         elif self.direction == 'DOWN':
             pyxel.rect(self.player_x, self.player_y, self.width, self.height, 9)
@@ -39,3 +54,13 @@ class Tank:
         elif self.direction == 'LEFT':
             pyxel.rect(self.player_x, self.player_y, self.height, self.width, 9)
             pyxel.blt(self.player_x, self.player_y, 0, 48, 0, 16, 16)
+
+    def activate_gatling(self, duration: int):
+        self.gatling_mode = True
+        self.powerup_timer = duration
+    
+    def activate_invincibility(self, duration: int):
+        self.invincibility_mode = True
+        self.powerup_timer = duration
+
+

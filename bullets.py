@@ -29,7 +29,7 @@ class Bullets:
             self.bullets[owner] = []
 
         if direction == 'UP':
-            self.bullets[owner].append((x + 7, y + 3, 0, -self.velocity))
+            self.bullets[owner].append((x+7, y + 3, 0, -self.velocity))
         elif direction == 'DOWN':
             self.bullets[owner].append((x + 8, y + 13, 0, self.velocity))
         elif direction == 'LEFT':
