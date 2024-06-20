@@ -85,6 +85,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def init_positions(self, restart: bool=False):
         if restart:
             self.level = 1
+            self.lives = 3
         self.bullets = Bullets()
         self.blocks = Block()
         self.powerups = Powerup()
@@ -108,7 +109,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
         self.populate_blocks()
         self.tank = Tank(self.x(self.tank_loc_col), self.y(self.tank_loc_row))
         self.enemies = Enemies()
-        self.enemies_count = 1 #(self.level*2) + 3
+        self.enemies_count = (self.level*2) + 3
         self.enemy_spawning = self.enemies_count
     
     def check_cheat_code(self):
