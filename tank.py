@@ -41,21 +41,35 @@ class Tank:
         if self.invincibility_mode:
             self.powerup_timer -= 1
             if self.powerup_timer <= 0:
-                self.gatling_mode = False
+                self.invincibility_mode = False
     
     def draw(self):
-        if self.direction == 'UP':
-            pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
-            pyxel.blt(self.player_x, self.player_y, 0, 0, 0, 16, 16, 0)
-        elif self.direction == 'DOWN':
-            pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
-            pyxel.blt(self.player_x, self.player_y, 0, 16, 0, 16, 16, 0)
-        elif self.direction == 'RIGHT':
-            pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
-            pyxel.blt(self.player_x, self.player_y, 0, 32, 0, 16, 16, 0)
-        elif self.direction == 'LEFT':
-            pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
-            pyxel.blt(self.player_x, self.player_y, 0, 48, 0, 16, 16, 0)
+        if not self.invincibility_mode:
+            if self.direction == 'UP':
+                pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 0, 0, 16, 16, 0)
+            elif self.direction == 'DOWN':
+                pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 16, 0, 16, 16, 0)
+            elif self.direction == 'RIGHT':
+                pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 32, 0, 16, 16, 0)
+            elif self.direction == 'LEFT':
+                pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 48, 0, 16, 16, 0)
+        else:
+            if self.direction == 'UP':
+                pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 0, 112, 16, 16, 0)
+            elif self.direction == 'DOWN':
+                pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 16, 112, 16, 16, 0)
+            elif self.direction == 'RIGHT':
+                pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 32, 112, 16, 16, 0)
+            elif self.direction == 'LEFT':
+                pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
+                pyxel.blt(self.player_x, self.player_y, 0, 48, 112, 16, 16, 0)
 
     def activate_gatling(self, duration: int):
         self.gatling_mode = True

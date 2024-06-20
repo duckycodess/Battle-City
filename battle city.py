@@ -74,8 +74,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
         self.level = 1
         self.tank_loc_col = 0
         self.tank_loc_row = 0
-        self.enemy_spawn_col = 15
-        self.enemy_spawn_row = 15
+        self.current_enemy_spawns: list[tuple[int, int]] = []
         self.init_positions()
         self.cheat_code = ""
         self.cheat_code_sequence = "hesoyam"
@@ -105,6 +104,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
 
     def load_level(self):
         self.current_level = self.level_layouts[self.level]
+        self.check_spawn()
         self.populate_blocks()
         self.tank = Tank(self.x(self.tank_loc_col), self.y(self.tank_loc_row))
         self.enemies = Enemies()
@@ -127,6 +127,24 @@ class BattleCity(pg.PyxelGrid[CellState]):
                 elif self.cheat_code == 'juancho':
                     self.enemies.enemy_tank.clear()
                     self.cheat_code = ""
+
+    def check_spawn(self):
+        self.player_spawn_row, self.player_spawn_col = self.player_spawn[self.level]
+        if self.in_bounds(self.player_spawn_row, self.player_spawn_col):
+            self.tank_loc_col, self.tank_loc_row = self.player_spawn_col+1, self.player_spawn_row+1
+        else:
+            raise ValueError('invalid row or column!')
+        
+        self.current_enemy_spawns = self.enemy_spawns[self.level]
+        actual_spawns: list[tuple[int, int]] = []
+        for enemy_spawn_row, enemy_spawn_col in self.current_enemy_spawns:
+            if self.in_bounds(enemy_spawn_row, enemy_spawn_col):
+                actual_spawns.append((enemy_spawn_col+1, enemy_spawn_row+1))
+            else:
+                raise ValueError('invalid row or column!')
+        if len(set(self.enemy_spawns)) != len(self.enemy_spawns):
+            raise ValueError('Must not have duplicate spawn areas!')
+        self.current_enemy_spawns = actual_spawns
 
     def generate_key_map(self) -> dict[int, str]:
         key_map: dict[int, str] = {}
@@ -158,25 +176,19 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def is_invalid_block_placement(self, r: int, c: int) -> bool:
         return (self.current_level[r][c] != '0') and (
                 (r+1 == self.tank_loc_row and c+1 == self.tank_loc_col) or
-                (r+1 == self.enemy_spawn_row and c+1 == self.enemy_spawn_col))
+                ((c+1, r+1) in self.current_enemy_spawns))
         
 
     def load_stage_file(self):
         stage = Stage() # Dito ko kukunin info
-        self.level_layouts = stage.levels 
-        if self.in_bounds(stage.player_spawn_row, stage.player_spawn_col):
-            self.tank_loc_col, self.tank_loc_row = stage.player_spawn_col+1, stage.player_spawn_row+1
-        else:
-            raise ValueError('invalid row or column!')
-        if self.in_bounds(stage.enemy_spawn_row, stage.player_spawn_col):
-            self.enemy_spawn_col, self.enemy_spawn_row = stage.enemy_spawn_col+1, stage.enemy_spawn_row+1
-        else:
-            raise ValueError('invalid row or column!')
+        self.level_layouts = stage.levels
+        self.player_spawn = stage.player_spawn
+        self.enemy_spawns = stage.enemy_spawn
             
 
     def check_block_collission(self, x: int, y: int) -> bool:
         for ax, ay, type in self.blocks.blocks:
-            if type and (ax < x < ax+self.dim or ax < x +self.dim < ax+self.dim or ax < x +self.dim//2 < ax+self.dim) and \
+            if type not in [0, 7] and (ax < x < ax+self.dim or ax < x +self.dim < ax+self.dim or ax < x +self.dim//2 < ax+self.dim) and \
                 (ay < y < ay+self.dim or ay < y+self.dim < ay+self.dim or ay < y+self.dim//2 < ay+self.dim):
                 return True
         return False
@@ -217,7 +229,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
                         elif t == 2:
                             self.score += 200
                         hit = True
-                elif self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim:
+                elif (self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim) and not self.tank.invincibility_mode:
                     pyxel.play(0, PLAYER_DIED)
                     self.lives -= 1
                     if not self.lives:
@@ -238,7 +250,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
             if enemy_id.startswith("enemy_"):
                 new_bullets: list[tuple[int, int, int, int]] = []
                 for bx, by, vx, vy in self.bullets.bullets[enemy_id]:
-                    if self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim:
+                    if (self.tank.player_x < bx < self.tank.player_x + self.dim and self.tank.player_y < by < self.tank.player_y + self.dim) and not self.tank.invincibility_mode:
                         pyxel.play(0, PLAYER_DIED)
                         self.lives -= 1
                         if not self.lives:
@@ -261,7 +273,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
     def check_bullet_block_collission(self):
         new_bullets: list[tuple[int, int, int, int]] = []
         for bx, by, vx, vy in self.bullets.bullets["player"]:
-            cell_x, cell_y = pyxel.floor(bx / self.dim), pyxel.floor(by / self.dim)
+            cell_x, cell_y = pyxel.floor((bx + self.bullets.r) / self.dim), pyxel.floor((by + self.bullets.r) / self.dim)
             if self.in_bounds(cell_x, cell_y):
                 cell_type = Blocks(self[cell_x, cell_y].type)
 
@@ -297,6 +309,9 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     vx, vy = -vy, -vx
                 elif cell_type == Blocks.WATER:
                     pass
+                elif cell_type == Blocks.HOME:
+                    self.state = GameState.GAME_OVER
+
                 new_bullets.append((bx + vx, by + vy, vx, vy))
         self.bullets.bullets["player"] = new_bullets
 
@@ -336,6 +351,9 @@ class BattleCity(pg.PyxelGrid[CellState]):
                             vx, vy = -vy, -vx
                         elif cell_type == Blocks.WATER:
                             pass
+                        elif cell_type == Blocks.HOME:
+                            self.state = GameState.GAME_OVER
+
                         new_bullets.append((bx + vx, by + vy, vx, vy))
                 self.bullets.bullets[enemy_id] = new_bullets
 
@@ -383,6 +401,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
 
                 self.enemies.enemy_tank[i] = ((ex, ey), d, enemy_id, enemy_type)
         if self.tick % 600 == 0 and self.enemy_spawning > 0: # Every 10 seconds spawn an enemy
+            self.enemy_spawn_col, self.enemy_spawn_row = random.choice(self.current_enemy_spawns)
             self.enemies.enemy_tank.append(((self.x(self.enemy_spawn_col), self.y(self.enemy_spawn_row)), 
             random.choice(['UP',  'DOWN', 'LEFT', 'RIGHT']), f'enemy_{self.enemy_spawning}', random.choice([0,1]))) # Just append the enemy into a list
             self.enemy_spawning -= 1 # Bawasan need to spawn
@@ -406,7 +425,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
         
         if self.state == GameState.LEVEL_COMPLETED:
             self.tick += 1
-            if self.level <= max(list(self.level_layouts.keys())) and not self.tick % 180:
+            if self.level <= max(list(self.level_layouts.keys())):
                 self.init_positions()
                 self.state = GameState.NEXT_LEVEL
         elif not self.state == GameState.RUNNING:
@@ -441,11 +460,10 @@ class BattleCity(pg.PyxelGrid[CellState]):
                 pass
         
         # powerup spawn
-        if self.tick % 1000 == 0 :
+        if self.tick % 1000 == 0 and self.tick != 0:
             self.powerups.timer = self.tick
             spawn_x, spawn_y = random.choice(self.blocks.empty_blocks)
             self.powerups.powerups.append((self.x(spawn_x), self.y(spawn_y), random.choice([0,1,2,3])))
-            print(self.powerups.powerups)
 
         # powerup despawn
         if self.tick - self.powerups.timer == 480 and self.powerups.powerups:
@@ -480,11 +498,11 @@ class BattleCity(pg.PyxelGrid[CellState]):
         
         if not self.enemies.enemy_tank and not ([values for values in self.bullets.bullets.values() if values]) \
             and not self.enemy_spawning:
-                if self.level < max(list(self.level_layouts.keys())):
+                if self.level <= max(list(self.level_layouts.keys())):
                     self.tick = 0
                     self.level += 1
                     self.state = GameState.LEVEL_COMPLETED
-                else:
+                elif self.level > max(list(self.level_layouts.keys())):
                     self.state = GameState.WIN
                     pyxel.play(0, GAME_WON)
 
@@ -500,21 +518,22 @@ class BattleCity(pg.PyxelGrid[CellState]):
             pyxel.cls(0)
             pyxel.text(120, 110, f"Score: {self.score}", 7)
             pyxel.text(120, 130, f'Lives: {self.lives}', 7)
-            if self.tick % 7:
+            if self.tick % 9 == 0:
                 pyxel.text(110, 150, f'Loading Level {self.level}...', 7)
-            elif self.tick % 5:
+            elif self.tick % 54 == 0:
                 pyxel.text(110, 150, f'Loading Level {self.level}..', 7)
-            elif self.tick % 3:
+            else:
                 pyxel.text(110, 150, f'Loading Level {self.level}.', 7)
         else:
             self.blocks.width = self.dim
 
             # Block types
-            self.bullets.draw()
             if not self.state == GameState.GAME_OVER:
                 self.tank.draw()
             self.enemies.draw()
             self.blocks.draw()
+            self.bullets.draw()
+            self.blocks.draw_forest()
             self.powerups.draw()
 
     def pre_draw_grid(self) -> None:
@@ -543,7 +562,8 @@ class BattleCity(pg.PyxelGrid[CellState]):
             pyxel.text(250, 5, f'Level {self.level}', 7)
         if self.state == GameState.GAME_OVER:
             pyxel.cls(0)
-            pyxel.text(self.x(8)-5 ,self.y(8), 'Loser', 10)
+            pyxel.text(self.x(8)-12, self.y(8), 'Loser :(', 10)
+            pyxel.text(self.x(7)-10, self.y(8)+10, f'Your Score is: {self.score}', 8)
         elif self.state == GameState.WIN:
             pyxel.cls(4)
             pyxel.text(self.x(8)-5 ,self.y(8), 'Winner', 8)
