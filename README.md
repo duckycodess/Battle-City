@@ -29,9 +29,9 @@ The stage file is a `.py file` that provides the necessary details to create and
 
 ## [CHEAT CODE]
 Activate the cheat code by typing: 
-`hesoyam`: This will grant you an additional life.
-`pewpews`: This will activate Gatling Mode.
-`juancho`: This will clear all enemy tanks in the level.
+   - `hesoyam`: This will grant you an additional life.
+   - `pewpews`: This will activate Gatling Mode.
+   - `juancho`: This will clear all enemy tanks in the level.
 
 ## HIGHEST PHASE ACCOMPLISHED
 
