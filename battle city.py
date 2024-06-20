@@ -395,7 +395,7 @@ class BattleCity(pg.PyxelGrid[CellState]):
                     if not self.check_block_collission(new_x, new_y) and not self.is_tank_collision(new_x, new_y, self.dim, self.dim, enemy_id):
                         ex, ey = new_x, new_y
 
-                if random.random() < 0.2:  # 20% chance to fire
+                if random.random() < 0.08:  # 8% chance to fire
                     if enemy_id not in self.bullets.bullets or not self.bullets.bullets[enemy_id]:
                         self.bullets.fire(enemy_id, ex, ey, d)
 
@@ -428,14 +428,14 @@ class BattleCity(pg.PyxelGrid[CellState]):
             if self.level <= max(list(self.level_layouts.keys())):
                 self.init_positions()
                 self.state = GameState.NEXT_LEVEL
-        elif not self.state == GameState.RUNNING:
-            return
-        
-        if self.state == GameState.RUNNING and pyxel.btnp(pyxel.KEY_R):
+        elif (self.state == GameState.RUNNING or self.state == GameState.GAME_OVER or self.state == GameState.WIN) and pyxel.btnp(pyxel.KEY_R):
             pyxel.play(0, BTN_PRESS)
             self.init_positions(restart=True)
             self.tick = 0
             self.state = GameState.LOADING_SCREEN
+        elif not self.state == GameState.RUNNING:
+            return
+        
         
         self.tank.update()
         # Tank-Block Collision
@@ -546,8 +546,9 @@ class BattleCity(pg.PyxelGrid[CellState]):
         elif not self.state == GameState.LOADING_SCREEN:
             pyxel.cls(1)
             pyxel.text(5, 5, f"Score: {self.score}", 7)
-            pyxel.text(50, 5, f'Lives: {self.lives}', 7)
+            pyxel.text(5, self.y(self.r) - 10, f'Lives: {self.lives}', 7)
             pyxel.text(250, 5, f'Level {self.level}', 7)
+            pyxel.text(self.x(self.c) - 65, self.y(self.r) - 10, f'Enemies Left: {self.enemy_spawning}', 7)
     
     def post_draw_grid(self) -> None:
         if self.state == GameState.RESPAWN:
@@ -558,8 +559,9 @@ class BattleCity(pg.PyxelGrid[CellState]):
             
         if self.state not in [GameState.LOADING_SCREEN, GameState.NEXT_LEVEL]:
             pyxel.text(5, 5, f"Score: {self.score}", 7)
-            pyxel.text(50, 5, f'Lives: {self.lives}', 7)
+            pyxel.text(5, self.y(self.r) - 10, f'Lives: {self.lives}', 7)
             pyxel.text(250, 5, f'Level {self.level}', 7)
+            pyxel.text(self.x(self.c) - 65, self.y(self.r) - 10, f'Enemies Left: {self.enemy_spawning}', 7)
         if self.state == GameState.GAME_OVER:
             pyxel.cls(0)
             pyxel.text(self.x(8)-12, self.y(8), 'Loser :(', 10)

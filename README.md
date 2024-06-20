@@ -6,6 +6,7 @@
 2. **Controls:**
    - **Move:** Use the arrow keys or the WASD keys to move your tank.
    - **Shoot:** Press the spacebar to shoot bullets.
+   - **Restart:** Press R to restart your game without quitting.
 3. **Gameplay:** Navigate through different stages, avoiding obstacles and destroying enemy tanks. Protect your home base (the star) from being hit.
 4. **Powerups:** While playing the game, you may have powerups to help you accomplish the objective of the game:
    -	`Gatling Mode:` Your tank will automatically shoot bullet continuously for some period of time.
