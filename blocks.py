@@ -30,6 +30,7 @@ class Block:
                 pyxel.rect(x, y, self.width, self.width, self.bg)
                 pyxel.blt(x, y, 0, 48, 48, 16, 16)
             elif type == 8:
+                pyxel.rect(x, y, self.width, self.width, self.bg)
                 pyxel.blt(x, y, 0, 48, 64, 16, 16)
             elif type == 9:
                 pyxel.rect(x,y,self.width, self.width, 2)
