@@ -1,10 +1,11 @@
 import pyxel
+import random
 
 class Tank:
     def __init__(self, x: int, y: int) -> None:
         self.player_x = x
         self.player_y = y
-        self.direction = 'UP'
+        self.direction = random.choice(['UP', 'DOWN', 'LEFT', 'RIGHT'])
         self.height = 16
         self.width = 16
         self.speed = 2
@@ -14,6 +15,7 @@ class Tank:
         self.gatling_mode = False
         self.powerup_timer = 0
         self.invincibility_mode = False
+        self.bg = 0
     
     def update(self):
         if pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.KEY_A):
@@ -43,17 +45,17 @@ class Tank:
     
     def draw(self):
         if self.direction == 'UP':
-            pyxel.rect(self.player_x, self.player_y, self.width, self.height, 6)
-            pyxel.blt(self.player_x, self.player_y, 0, 0, 0, 16, 16)
+            pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
+            pyxel.blt(self.player_x, self.player_y, 0, 0, 0, 16, 16, 0)
         elif self.direction == 'DOWN':
-            pyxel.rect(self.player_x, self.player_y, self.width, self.height, 9)
-            pyxel.blt(self.player_x, self.player_y, 0, 16, 0, 16, 16)
+            pyxel.rect(self.player_x, self.player_y, self.width, self.height, self.bg)
+            pyxel.blt(self.player_x, self.player_y, 0, 16, 0, 16, 16, 0)
         elif self.direction == 'RIGHT':
-            pyxel.rect(self.player_x, self.player_y, self.height, self.width, 9)
-            pyxel.blt(self.player_x, self.player_y, 0, 32, 0, 16, 16)
+            pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
+            pyxel.blt(self.player_x, self.player_y, 0, 32, 0, 16, 16, 0)
         elif self.direction == 'LEFT':
-            pyxel.rect(self.player_x, self.player_y, self.height, self.width, 9)
-            pyxel.blt(self.player_x, self.player_y, 0, 48, 0, 16, 16)
+            pyxel.rect(self.player_x, self.player_y, self.height, self.width, self.bg)
+            pyxel.blt(self.player_x, self.player_y, 0, 48, 0, 16, 16, 0)
 
     def activate_gatling(self, duration: int):
         self.gatling_mode = True

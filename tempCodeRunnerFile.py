@@ -1,0 +1,1 @@
+pyxel.text(self.x(8), self.y(8) + 32, "Press Space to Respawn", 8)
