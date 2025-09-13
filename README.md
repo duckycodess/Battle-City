@@ -40,7 +40,7 @@ Activate the cheat code by typing:
 
 ## MEMBERS and CONTRIBUTIONS
 
-**Tristan Jovan S. Noval**  
+**:P**  
 - Implementation of Player and Enemy Tanks Mechanics
 - Implementaion of Player Bullets Mechanics
 - Implementation of Enemy AI
@@ -50,7 +50,7 @@ Activate the cheat code by typing:
 - Stage File Implementation
 - Testing and Debugging
 
-**Jarelle Gail E. Ricaforte**  
+**:P**  
 - Implementation of Enemy Bullets Mechanics
 - Implementation of Collission Mechanics
 - Implementation of the Types of Cells
@@ -62,3 +62,4 @@ Activate the cheat code by typing:
 ## VIDEO DEMO
 
 [Google Drive Video Demo]
+
